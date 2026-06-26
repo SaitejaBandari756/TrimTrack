@@ -1,4 +1,4 @@
-# 🔗 URL Shortener — Production-Grade Distributed System
+# 🔗 TrimTrack — Production-Grade Distributed System
 
 [![CI/CD](https://github.com/your-username/url-shortener/workflows/CI%2FCD%20Pipeline/badge.svg)](https://github.com/your-username/url-shortener/actions)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
@@ -305,8 +305,8 @@ Each short code gets a live analytics dashboard at `/dashboard/{short_code}`:
 ### Local Development (Docker Compose)
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/url-shortener.git
-cd url-shortener
+git clone https://github.com/SaitejaBandari756/TrimTrack.git
+cd TrimTrack
 
 # Copy environment file
 cp .env.example .env
@@ -502,7 +502,7 @@ locust -f locust/locustfile.py --host=http://localhost:8000 \
 ## 📁 Project Structure
 
 ```
-url-shortener/
+TrimTrack/
 ├── app/
 │   ├── main.py                 # FastAPI entry point + lifespan
 │   ├── config.py               # Pydantic Settings from .env
