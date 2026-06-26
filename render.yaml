@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: trimtrack
+    runtime: docker
+    plan: free
+    envVars:
+      - key: BASE_URL
+        value: https://trimtrack.onrender.com
+      - key: MACHINE_ID
+        value: 1
+      - key: DEBUG
+        value: false
+      - key: SQLITE_FALLBACK
+        value: true

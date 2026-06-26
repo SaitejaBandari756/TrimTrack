@@ -1,7 +1,10 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
 *.so
+*.db
+.DS_Store
 .env
 *.egg-info/
 dist/
