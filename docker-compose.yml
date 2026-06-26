@@ -1,0 +1,96 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    container_name: url-shortener
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://urlshortener:urlshortener@postgres:5432/urlshortener
+      - REDIS_URL=redis://redis:6379/0
+      - BASE_URL=http://localhost:8000
+      - MACHINE_ID=1
+      - DEBUG=false
+      - PROMETHEUS_ENABLED=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - shortener-net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: url-shortener-postgres
+    environment:
+      POSTGRES_USER: urlshortener
+      POSTGRES_PASSWORD: urlshortener
+      POSTGRES_DB: urlshortener
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U urlshortener"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - shortener-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: url-shortener-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - shortener-net
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: url-shortener-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+    networks:
+      - shortener-net
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: url-shortener-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - shortener-net
+
+volumes:
+  postgres_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  shortener-net:
+    driver: bridge

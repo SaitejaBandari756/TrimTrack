@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: url-shortener-config
+data:
+  APP_NAME: url-shortener
+  APP_HOST: "0.0.0.0"
+  APP_PORT: "8000"
+  BASE_URL: "http://url-shortener-svc"
+  DEBUG: "false"
+  MACHINE_ID: "1"
+  RATE_LIMIT_REDIRECT: "100"
+  RATE_LIMIT_CREATE: "10"
+  RATE_LIMIT_WINDOW: "60"
+  CACHE_TTL: "86400"
+  CACHE_WARM_TOP_N: "1000"
+  BLOOM_FILTER_CAPACITY: "1000000"
+  BLOOM_FILTER_ERROR_RATE: "0.001"
+  SAFETY_SCORE_THRESHOLD: "0.5"
+  PROMETHEUS_ENABLED: "true"
+  GEO_API_URL: "http://ip-api.com/json"
