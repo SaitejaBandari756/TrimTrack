@@ -42,6 +42,7 @@ def _create_engine(url: str):
     engine = create_async_engine(url, **_get_engine_kwargs(url))
 
     if "sqlite" in url:
+
         @event.listens_for(engine.sync_engine, "connect")
         def disable_foreign_keys(dbapi_connection, connection_record):
             cursor = dbapi_connection.cursor()

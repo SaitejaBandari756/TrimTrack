@@ -21,7 +21,7 @@ BLOCKED_NETWORKS = [ipaddress.ip_network(r) for r in BLOCKED_IP_RANGES]
 
 
 def is_valid_url(url: str) -> bool:
-    
+
     if not url or len(url) > 2048:
         return False
 
@@ -40,7 +40,7 @@ def is_valid_url(url: str) -> bool:
 
 
 def is_private_ip(hostname: str) -> bool:
-    
+
     try:
         ip = ipaddress.ip_address(hostname)
         for network in BLOCKED_NETWORKS:
@@ -52,7 +52,7 @@ def is_private_ip(hostname: str) -> bool:
 
 
 def validate_url_safety(url: str) -> tuple[bool, str]:
-    
+
     if not is_valid_url(url):
         return False, "Invalid URL format"
 
@@ -62,8 +62,16 @@ def validate_url_safety(url: str) -> tuple[bool, str]:
         return False, "URLs pointing to private/internal IPs are not allowed"
 
     dangerous_extensions = [
-        ".exe", ".bat", ".cmd", ".msi", ".scr",
-        ".pif", ".vbs", ".js", ".wsf", ".ps1",
+        ".exe",
+        ".bat",
+        ".cmd",
+        ".msi",
+        ".scr",
+        ".pif",
+        ".vbs",
+        ".js",
+        ".wsf",
+        ".ps1",
     ]
     path_lower = (parsed.path or "").lower()
     for ext in dangerous_extensions:

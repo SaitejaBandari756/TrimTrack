@@ -20,7 +20,8 @@ class URLCreateRequest(BaseModel):
         "302", description="Redirect type: '301' (permanent) or '302' (temporary)"
     )
     force_adult: bool = Field(
-        False, description="If True, bypass the adult content block (user acknowledged the warning)"
+        False,
+        description="If True, bypass the adult content block (user acknowledged the warning)",
     )
 
     @field_validator("url")

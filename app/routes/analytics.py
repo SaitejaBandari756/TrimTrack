@@ -11,8 +11,14 @@ router = APIRouter()
 async def get_analytics(short_code: str, session: AsyncSession = Depends(get_session)):
     result = await analytics_service.get_analytics(session, short_code)
     if not result:
-        return JSONResponse(status_code=404, content={
-            "error": "Not Found", "detail": f"No analytics for '{short_code}'", "code": 404})
+        return JSONResponse(
+            status_code=404,
+            content={
+                "error": "Not Found",
+                "detail": f"No analytics for '{short_code}'",
+                "code": 404,
+            },
+        )
     return result
 
 

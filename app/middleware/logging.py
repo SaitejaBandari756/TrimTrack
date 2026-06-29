@@ -14,7 +14,11 @@ def setup_logging(debug: bool = False):
             structlog.processors.StackInfoRenderer(),
             structlog.dev.set_exc_info,
             structlog.processors.TimeStamper(fmt="iso"),
-            structlog.dev.ConsoleRenderer() if debug else structlog.processors.JSONRenderer(),
+            (
+                structlog.dev.ConsoleRenderer()
+                if debug
+                else structlog.processors.JSONRenderer()
+            ),
         ],
         wrapper_class=structlog.make_filtering_bound_logger(level),
         context_class=dict,
@@ -30,10 +34,12 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         duration_ms = (time.time() - start) * 1000
         logger = structlog.get_logger()
-        logger.info("request",
-                     method=request.method,
-                     path=str(request.url.path),
-                     status=response.status_code,
-                     duration_ms=round(duration_ms, 2),
-                     client=request.client.host if request.client else "unknown")
+        logger.info(
+            "request",
+            method=request.method,
+            path=str(request.url.path),
+            status=response.status_code,
+            duration_ms=round(duration_ms, 2),
+            client=request.client.host if request.client else "unknown",
+        )
         return response

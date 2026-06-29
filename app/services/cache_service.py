@@ -91,7 +91,9 @@ class CacheService:
             return
         try:
             ttl = ttl or settings.cache_ttl
-            await self._redis.set(f"meta:{short_code}", json.dumps(metadata, default=str), ex=ttl)
+            await self._redis.set(
+                f"meta:{short_code}", json.dumps(metadata, default=str), ex=ttl
+            )
         except Exception as e:
             logger.warning(f"Cache metadata set failed: {e}")
 

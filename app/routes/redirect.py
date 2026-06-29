@@ -10,18 +10,41 @@ router = APIRouter()
 
 
 @router.get("/{short_code}", tags=["Redirect"])
-async def redirect_url(short_code: str, request: Request,
-                       background_tasks: BackgroundTasks,
-                       session: AsyncSession = Depends(get_session)):
-    if short_code in ("shorten", "health", "metrics", "docs", "openapi.json", "redoc", "dashboard", "favicon.ico"):
-        return JSONResponse(status_code=404, content={"error": "Not Found", "detail": "Not a short code", "code": 404})
+async def redirect_url(
+    short_code: str,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    session: AsyncSession = Depends(get_session),
+):
+    if short_code in (
+        "shorten",
+        "health",
+        "metrics",
+        "docs",
+        "openapi.json",
+        "redoc",
+        "dashboard",
+        "favicon.ico",
+    ):
+        return JSONResponse(
+            status_code=404,
+            content={"error": "Not Found", "detail": "Not a short code", "code": 404},
+        )
 
     ip = request.client.host if request.client else "unknown"
-    is_limited, remaining, retry_after = await rate_limiter.is_rate_limited(ip, "redirect")
+    is_limited, remaining, retry_after = await rate_limiter.is_rate_limited(
+        ip, "redirect"
+    )
     if is_limited:
-        return JSONResponse(status_code=429, content={
-            "error": "Rate Limit Exceeded", "detail": "Too many redirect requests", "code": 429},
-            headers={"Retry-After": str(retry_after)})
+        return JSONResponse(
+            status_code=429,
+            content={
+                "error": "Rate Limit Exceeded",
+                "detail": "Too many redirect requests",
+                "code": 429,
+            },
+            headers={"Retry-After": str(retry_after)},
+        )
 
     url, error = await url_service.get_url(session, short_code)
     if error:

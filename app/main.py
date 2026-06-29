@@ -24,6 +24,7 @@ scheduler = AsyncIOScheduler()
 async def cleanup_expired_urls():
     from app.database.session import async_session_factory
     from app.services.url_service import url_service
+
     async with async_session_factory() as session:
         count = await url_service.cleanup_expired(session)
         if count > 0:
@@ -36,7 +37,9 @@ async def lifespan(app: FastAPI):
     logger.info(f"Starting {settings.app_name}...")
 
     init_id_generator(settings.machine_id)
-    logger.info(f"Snowflake ID generator initialized (machine_id={settings.machine_id})")
+    logger.info(
+        f"Snowflake ID generator initialized (machine_id={settings.machine_id})"
+    )
 
     await init_engine()
 
@@ -55,7 +58,9 @@ async def lifespan(app: FastAPI):
         logger.info("  QR codes will work on mobile phones with this URL")
     else:
         logger.info(f"✓ Using local/configured base URL: {get_public_base_url()}")
-        logger.info("  To use ngrok for mobile access, set NGROK_URL environment variable")
+        logger.info(
+            "  To use ngrok for mobile access, set NGROK_URL environment variable"
+        )
 
     logger.info(f"{settings.app_name} is ready! Base URL: {settings.base_url}")
     yield
@@ -69,15 +74,20 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="TrimTrack API",
     description="TrimTrack — Production-grade URL shortener with click analytics, QR generation, "
-                "distributed ID generation, Redis caching, Bloom filters, and ML-based abuse detection.",
+    "distributed ID generation, Redis caching, Bloom filters, and ML-based abuse detection.",
     version="2.0.0",
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
 )
 
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True,
-                   allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(RateLimitMiddleware)
@@ -87,13 +97,15 @@ app.include_router(shorten.router)
 app.include_router(health.router)
 app.include_router(qr.router)
 app.include_router(analytics.router)
-app.include_router(redirect.router)  
+app.include_router(redirect.router)
 if settings.prometheus_enabled:
     try:
         from prometheus_fastapi_instrumentator import Instrumentator
+
         Instrumentator().instrument(app).expose(app, endpoint="/metrics")
     except ImportError:
         pass
+
 
 @app.get("/dashboard/{short_code}", response_class=HTMLResponse, tags=["Dashboard"])
 async def analytics_dashboard(short_code: str):
@@ -234,5 +246,11 @@ setInterval(fetchAnalytics, 30000);
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host=settings.app_host, port=settings.app_port,
-                reload=settings.debug, log_level="info")
+
+    uvicorn.run(
+        "app.main:app",
+        host=settings.app_host,
+        port=settings.app_port,
+        reload=settings.debug,
+        log_level="info",
+    )

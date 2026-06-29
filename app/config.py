@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     app_host: str = Field(default="0.0.0.0")
     app_port: int = Field(default=8000)
     base_url: str = Field(default="http://localhost:8000")
-    ngrok_url: Optional[str] = Field(default=None)  
+    ngrok_url: Optional[str] = Field(default=None)
     debug: bool = Field(default=False)
 
     database_url: str = Field(
@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     rate_limit_create: int = Field(default=10)
     rate_limit_window: int = Field(default=60)
 
-    cache_ttl: int = Field(default=86400)  
+    cache_ttl: int = Field(default=86400)
     cache_warm_top_n: int = Field(default=1000)
 
     bloom_filter_capacity: int = Field(default=1_000_000)

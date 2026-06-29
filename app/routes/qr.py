@@ -21,13 +21,20 @@ async def get_qr_code(short_code: str, session: AsyncSession = Depends(get_sessi
     cached_qr = await cache_service.get_qr(short_code)
     if cached_qr:
         img_bytes = base64.b64decode(cached_qr)
-        return StreamingResponse(io.BytesIO(img_bytes), media_type="image/png",
-                                 headers={"Cache-Control": "public, max-age=86400"})
+        return StreamingResponse(
+            io.BytesIO(img_bytes),
+            media_type="image/png",
+            headers={"Cache-Control": "public, max-age=86400"},
+        )
 
     public_base_url = get_public_base_url()
     short_url = f"{public_base_url}/{short_code}"
-    qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L,
-                        box_size=10, border=4)
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
     qr.add_data(short_url)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
@@ -40,5 +47,6 @@ async def get_qr_code(short_code: str, session: AsyncSession = Depends(get_sessi
     await cache_service.set_qr(short_code, qr_b64)
 
     buf.seek(0)
-    return StreamingResponse(buf, media_type="image/png",
-                             headers={"Cache-Control": "public, max-age=86400"})
+    return StreamingResponse(
+        buf, media_type="image/png", headers={"Cache-Control": "public, max-age=86400"}
+    )

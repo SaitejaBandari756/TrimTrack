@@ -17,7 +17,7 @@ class RateLimiter:
         limit: Optional[int] = None,
         window: Optional[int] = None,
     ) -> tuple[bool, int, int]:
-        
+
         redis_client = cache_service.client
         if not redis_client:
             return False, 999, 0
@@ -44,7 +44,7 @@ class RateLimiter:
             pipe.expire(key, window + 1)
 
             results = await pipe.execute()
-            current_count = results[1]  
+            current_count = results[1]
 
             remaining = max(0, limit - current_count - 1)
             is_limited = current_count >= limit
