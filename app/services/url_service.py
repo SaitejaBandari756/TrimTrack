@@ -12,21 +12,23 @@ from app.utils.url_helpers import get_public_base_url
 from app.services.cache_service import cache_service
 from app.services.bloom_filter import bloom_filter_service
 from app.services.url_safety import url_safety_service
-from app.config import settings
 
 logger = logging.getLogger(__name__)
 
 
 class URLService:
     async def create_short_url(self, session: AsyncSession, request: URLCreateRequest) -> tuple[Optional[URLResponse], Optional[dict]]:
-        """Create a shortened URL. Returns (response, error_dict)."""
         is_safe, reason = validate_url_safety(request.url)
         if not is_safe:
             return None, {"error": "Invalid URL", "detail": reason, "code": 422}
 
         safety_score, is_safe, reason, warnings = url_safety_service.check_url(request.url)
         if not is_safe:
-            return None, {"error": "Unsafe URL", "detail": reason, "code": 422, "warnings": warnings}
+            is_adult_warning = warnings.get("warning_type") == "ADULT_CONTENT"
+            if is_adult_warning and request.force_adult:
+                pass
+            else:
+                return None, {"error": "Unsafe URL", "detail": reason, "code": 422, "warnings": warnings}
 
         if request.custom_alias:
             short_code = request.custom_alias
@@ -118,7 +120,7 @@ class URLService:
     async def cleanup_expired(self, session: AsyncSession) -> int:
         now = datetime.now(timezone.utc)
         result = await session.execute(
-            select(URL).where(URL.expiry_date <= now, URL.is_active == True))
+            select(URL).where(URL.expiry_date <= now, URL.is_active))
         expired_urls = result.scalars().all()
         count = 0
         for url in expired_urls:

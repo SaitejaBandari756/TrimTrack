@@ -2,7 +2,7 @@ import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.config import settings
@@ -95,10 +95,8 @@ if settings.prometheus_enabled:
     except ImportError:
         pass
 
-
 @app.get("/dashboard/{short_code}", response_class=HTMLResponse, tags=["Dashboard"])
 async def analytics_dashboard(short_code: str):
-    """Serve the real-time analytics dashboard."""
     html = _get_dashboard_html(short_code)
     return HTMLResponse(content=html)
 
@@ -127,6 +125,10 @@ def _get_dashboard_html(short_code: str) -> str:
         .chart-container{{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:1.5rem;margin-bottom:2rem}}
         .chart-title{{font-size:1rem;color:#ccc;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}}
         canvas{{width:100%!important;height:300px!important}}
+        .countries{{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:1.5rem}}
+        .country-row{{display:flex;justify-content:space-between;align-items:center;padding:.6rem 0;border-bottom:1px solid rgba(255,255,255,.05)}}
+        .country-row:last-child{{border:none}}
+        .country-bar{{height:4px;background:linear-gradient(90deg,#7c3aed,#a855f7);border-radius:2px;margin-top:.3rem;transition:width .5s}}
         .pulse{{animation:pulse 2s infinite}}
         @keyframes pulse{{0%,100%{{opacity:1}}50%{{opacity:.5}}}}
         .status{{display:inline-block;width:8px;height:8px;border-radius:50%;background:#10b981;margin-right:.5rem}}
@@ -157,6 +159,7 @@ def _get_dashboard_html(short_code: str) -> str:
         <div class="chart-container"><div class="chart-title">⏱ Hourly Trend (24h)</div><canvas id="trendChart"></canvas></div>
         <div class="chart-container"><div class="chart-title">📅 Clicks Per Day (30d)</div><canvas id="dailyChart"></canvas></div>
     </div>
+    <div class="countries"><div class="chart-title">🌍 Country Breakdown</div><div id="countryList"></div></div>
     <div class="recent"><div class="chart-title">🕐 Recent Clicks</div><table><thead><tr><th>Time</th><th>IP</th><th>User Agent</th></tr></thead><tbody id="recentTable"></tbody></table></div>
     <div class="brand">Powered by <a href="/">TrimTrack</a></div>
 </div>

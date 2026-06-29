@@ -7,7 +7,6 @@ from sqlalchemy import (
     Float,
     Index,
 )
-from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy import DateTime
 from sqlalchemy.sql import func
 from app.database.session import Base

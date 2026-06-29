@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, HttpUrl, field_validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Dict, Any
 from datetime import datetime
 import re
@@ -18,6 +18,9 @@ class URLCreateRequest(BaseModel):
     )
     url_type: Optional[str] = Field(
         "302", description="Redirect type: '301' (permanent) or '302' (temporary)"
+    )
+    force_adult: bool = Field(
+        False, description="If True, bypass the adult content block (user acknowledged the warning)"
     )
 
     @field_validator("url")
@@ -78,7 +81,6 @@ class URLInfoResponse(BaseModel):
 
 
 class ErrorResponse(BaseModel):
-
     error: str
     detail: str
     code: int

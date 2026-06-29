@@ -831,6 +831,7 @@ def _get_landing_html() -> str:
         let currentResponse = null;
         let currentShortCode = '';
         let pendingWarning = false;
+        let currentWarningType = '';
 
         /* ━━━ Toast Notification System ━━━ */
         function showToast(title, message, type = 'error') {
@@ -949,42 +950,51 @@ def _get_landing_html() -> str:
                     icon: '🚫',
                     title: 'Adult Content Detected',
                     message: 'This URL leads to adult/NSFW content. This is blocked by TrimTrack for security and compliance reasons.',
-                    isDanger: true
+                    isDanger: true,
+                    allowProceed: true
                 },
                 'MALWARE': {
                     icon: '⚠️',
                     title: 'Malware Risk Detected',
-                    message: 'This URL may contain malware, including APK files or suspicious downloads. Proceed with caution.',
-                    isDanger: true
+                    message: 'This URL may contain malware, including APK files or suspicious downloads. This URL cannot be shortened.',
+                    isDanger: true,
+                    allowProceed: false
                 },
                 'MALICIOUS_PATTERN': {
                     icon: '🚨',
                     title: 'Suspicious Pattern Found',
-                    message: 'This URL matches known malicious patterns. It may be phishing or exploit attempt.',
-                    isDanger: true
+                    message: 'This URL matches known malicious patterns. It may be phishing or exploit attempt. This URL cannot be shortened.',
+                    isDanger: true,
+                    allowProceed: false
                 },
                 'BLOCKED_DOMAIN': {
                     icon: '🔒',
                     title: 'Blocked Domain',
-                    message: 'This domain is on our security blocklist.',
-                    isDanger: true
+                    message: 'This domain is on our security blocklist. This URL cannot be shortened.',
+                    isDanger: true,
+                    allowProceed: false
                 },
                 'SUSPICIOUS': {
                     icon: '⚠️',
                     title: 'Suspicious Activity',
                     message: warning.message,
-                    isDanger: true
+                    isDanger: true,
+                    allowProceed: false
                 }
             };
 
             const type = warningTypes[warning.warning_type] || warningTypes['SUSPICIOUS'];
+            currentWarningType = warning.warning_type;
 
             modalHeader.innerHTML = `<span class="modal-icon">${type.icon}</span><span class="modal-title">${type.title}</span>`;
             modalMessage.textContent = type.message;
 
-            if (type.isDanger) {
-                modalConfirm.textContent = '⚠️ Accept Anyway';
+            if (type.allowProceed) {
+                modalConfirm.textContent = 'I understand, proceed';
                 modalConfirm.classList.add('danger');
+                modalConfirm.style.display = '';
+            } else {
+                modalConfirm.style.display = 'none';
             }
 
             pendingWarning = true;
@@ -995,14 +1005,47 @@ def _get_landing_html() -> str:
             warningModal.classList.remove('show');
             pendingWarning = false;
             currentResponse = null;
+            currentWarningType = '';
+            modalConfirm.style.display = '';
         }
 
-        function confirmWarning() {
+        async function confirmWarning() {
             warningModal.classList.remove('show');
             pendingWarning = false;
-            if (currentResponse) {
-                displayResult(currentResponse);
+
+            // Only adult content is allowed to proceed
+            if (currentWarningType === 'ADULT_CONTENT') {
+                const url = urlInput.value.trim();
+                if (!url) return;
+
+                shortenBtn.disabled = true;
+                shortenBtn.innerHTML = '<span class="spinner"></span>';
+
+                try {
+                    const response = await fetch('/shorten', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url, force_adult: true })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        currentUrl = url;
+                        currentResponse = data;
+                        updateSafetyScore(data.safety_score);
+                        displayResult(data);
+                    } else {
+                        showToast('Error', data.detail || 'Something went wrong. Please try again.', 'error');
+                    }
+                } catch (e) {
+                    showToast('Connection Error', 'Could not connect to the server. Please check your connection.', 'error');
+                } finally {
+                    shortenBtn.disabled = false;
+                    shortenBtn.innerHTML = '🚀 Generate Short Link';
+                }
             }
+            currentWarningType = '';
         }
 
         /* ━━━ Display Result ━━━ */

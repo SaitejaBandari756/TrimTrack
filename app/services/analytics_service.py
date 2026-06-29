@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from collections import defaultdict
-from sqlalchemy import select, func, and_, case, literal_column
+from sqlalchemy import select, func, and_, literal_column
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.analytics import Analytics
 from app.models.url import URL
@@ -15,6 +15,14 @@ _ws_connections: dict[str, list] = defaultdict(list)
 
 def _is_sqlite(session: AsyncSession) -> bool:
     try:
+        return "sqlite" in str(session.get_bind().url)
+    except Exception:
+        pass
+    try:
+        return "sqlite" in str(session.sync_session.bind.url)
+    except Exception:
+        pass
+    try:
         from app.database.session import engine
         return "sqlite" in str(engine.url)
     except Exception:
@@ -24,8 +32,14 @@ def _is_sqlite(session: AsyncSession) -> bool:
 class AnalyticsService:
     async def record_click(self, session: AsyncSession, short_code: str,
                            ip_address: Optional[str] = None, user_agent: Optional[str] = None):
+        import traceback
+        print(f"\n>>> [ANALYTICS DEBUG] record_click called for '{short_code}' from IP={ip_address}", flush=True)
         try:
+            is_sqlite = _is_sqlite(session)
+            print(f">>> [ANALYTICS DEBUG] is_sqlite={is_sqlite}", flush=True)
+
             country = await lookup_country(ip_address) if ip_address else "Unknown"
+            print(f">>> [ANALYTICS DEBUG] country={country}", flush=True)
 
             is_unique = False
             if ip_address:
@@ -41,26 +55,27 @@ class AnalyticsService:
                     is_unique = True
             else:
                 is_unique = True
+            print(f">>> [ANALYTICS DEBUG] is_unique={is_unique}", flush=True)
 
             analytics = Analytics(
                 short_code=short_code, ip_address=ip_address,
                 user_agent=user_agent, country=country, is_unique=is_unique
             )
             session.add(analytics)
+            print(">>> [ANALYTICS DEBUG] analytics row added", flush=True)
 
             stmt = select(URL).where(URL.short_code == short_code)
-            is_sqlite = _is_sqlite(session)
             if not is_sqlite:
                 stmt = stmt.with_for_update()
             result = await session.execute(stmt)
             url = result.scalar_one_or_none()
+            print(f">>> [ANALYTICS DEBUG] url found={url is not None}, current count={url.click_count if url else 'N/A'}", flush=True)
             if url:
                 url.click_count = (url.click_count or 0) + 1
-                logger.info(f"Click recorded for {short_code}: count now {url.click_count}")
-            else:
-                logger.warning(f"URL not found for short_code={short_code} during click recording")
+                print(f">>> [ANALYTICS DEBUG] click_count set to {url.click_count}", flush=True)
 
             await session.commit()
+            print(f">>> [ANALYTICS DEBUG] commit successful! Final count={url.click_count if url else 'N/A'}", flush=True)
 
             await self._notify_ws(short_code, ClickEvent(
                 short_code=short_code, clicked_at=datetime.now(timezone.utc),
@@ -68,11 +83,14 @@ class AnalyticsService:
             ), url.click_count if url else 0)
 
         except Exception as e:
-            logger.error(f"Failed to record analytics for {short_code}: {e}", exc_info=True)
+            print(f"\n>>> [ANALYTICS ERROR] FAILED: {e}", flush=True)
+            print(">>> [ANALYTICS ERROR] Full traceback:", flush=True)
+            traceback.print_exc()
             try:
                 await session.rollback()
-            except Exception:
-                pass
+                print(">>> [ANALYTICS ERROR] rollback done", flush=True)
+            except Exception as rb_err:
+                print(f">>> [ANALYTICS ERROR] rollback also failed: {rb_err}", flush=True)
 
     async def get_analytics(self, session: AsyncSession, short_code: str) -> Optional[AnalyticsResponse]:
         url_result = await session.execute(select(URL).where(URL.short_code == short_code))
@@ -87,7 +105,7 @@ class AnalyticsService:
         country_breakdown = {row[0] or "Unknown": row[1] for row in country_result.fetchall()}
 
         unique_stmt = (select(func.count(Analytics.id))
-                       .where(and_(Analytics.short_code == short_code, Analytics.is_unique == True)))
+                       .where(and_(Analytics.short_code == short_code, Analytics.is_unique)))
         unique_result = await session.execute(unique_stmt)
         unique_clicks = unique_result.scalar() or 0
 
@@ -156,8 +174,7 @@ class AnalyticsService:
         recent_stmt = (select(Analytics).where(Analytics.short_code == short_code)
                        .order_by(Analytics.clicked_at.desc()).limit(20))
         recent_result = await session.execute(recent_stmt)
-        recent_clicks = [ClickEvent(short_code=a.short_code, 
-                                    clicked_at=a.clicked_at.replace(tzinfo=timezone.utc) if a.clicked_at.tzinfo is None else a.clicked_at,
+        recent_clicks = [ClickEvent(short_code=a.short_code, clicked_at=a.clicked_at,
                                     ip_address=a.ip_address, user_agent=a.user_agent, country=a.country)
                          for a in recent_result.scalars().all()]
 

@@ -3,7 +3,6 @@ import os
 import logging
 import joblib
 from urllib.parse import urlparse
-from typing import Optional
 
 from app.config import settings
 
@@ -39,7 +38,6 @@ BLOCKED_DOMAINS = {
     "secure-login.net",
     "free-prize.com",
     "click-here-now.com",
-
 }
 
 ADULT_DOMAINS = {
@@ -99,17 +97,18 @@ class URLSafetyService:
         self._model_loaded = True
 
     def check_regex_rules(self, url: str) -> tuple[bool, str]:
-     
+      
         for pattern in COMPILED_PATTERNS:
             if pattern.search(url):
                 return False, f"URL matches malicious pattern: {pattern.pattern}"
         return True, "Passed regex rules"
 
     def check_domain_blocklist(self, url: str) -> tuple[bool, str]:
-        
+    
         try:
             parsed = urlparse(url)
             domain = parsed.hostname or ""
+            # Check exact match and subdomain match
             domain_parts = domain.split(".")
             for i in range(len(domain_parts)):
                 check_domain = ".".join(domain_parts[i:])
@@ -120,7 +119,7 @@ class URLSafetyService:
         return True, "Domain is clean"
 
     def _extract_features(self, url: str) -> list[float]:
-     
+   
         parsed = urlparse(url)
         domain = parsed.hostname or ""
         path = parsed.path or ""
@@ -142,24 +141,27 @@ class URLSafetyService:
         return features
 
     def get_ml_score(self, url: str) -> float:
-   
+ 
         self._load_ml_model()
 
         if self._ml_model is None:
-            return 1.0  
+            return 1.0  # No model available, assume safe
 
         try:
             features = [self._extract_features(url)]
+            # Predict probability of being safe
             proba = self._ml_model.predict_proba(features)
+            # Index 1 = probability of "safe" class
             return float(proba[0][1]) if proba.shape[1] > 1 else float(proba[0][0])
         except Exception as e:
             logger.warning(f"ML scoring failed: {e}")
             return 1.0
 
     def check_apk_malware(self, url: str) -> tuple[bool, str]:
-      
+    
         url_lower = url.lower()
         
+        # Check for direct APK files
         if url_lower.endswith(".apk"):
             return False, "URL is a direct APK (Android app) download — potential malware risk"
         
@@ -180,7 +182,7 @@ class URLSafetyService:
         return True, "No APK/malware indicators detected"
 
     def check_adult_content(self, url: str) -> tuple[bool, str]:
-      
+     
         try:
             parsed = urlparse(url)
             domain = parsed.hostname or ""
@@ -195,7 +197,7 @@ class URLSafetyService:
             adult_keywords = ["porn", "xxx", "sex", "nsfw", "adult", "nude", "XXX"]
             for keyword in adult_keywords:
                 if keyword.lower() in url_lower:
-                    if "sex.com" not in url_lower: 
+                    if "sex.com" not in url_lower:  
                         continue
                     return False, "⚠️ ADULT CONTENT DETECTED — URL contains adult content indicators"
         except Exception:
@@ -204,9 +206,8 @@ class URLSafetyService:
         return True, "Not adult content"
 
     def check_suspicious_patterns(self, url: str) -> tuple[bool, str]:
-
+       
         url_lower = url.lower()
-        parsed = urlparse(url)
         
         redirect_count = url.count("redirect=") + url.count("goto=") + url.count("next=")
         if redirect_count > 3:
@@ -229,7 +230,7 @@ class URLSafetyService:
         return True, "No suspicious patterns detected"
 
     def check_url(self, url: str) -> tuple[float, bool, str, dict]:
-      
+        
         warnings = {}
         
         try:
@@ -270,7 +271,7 @@ class URLSafetyService:
         is_safe, reason = self.check_suspicious_patterns(url)
         if not is_safe:
             warnings["suspicious_patterns"] = reason
-            if reason.startswith("🚨"):
+            if reason.startswith("🚨"):  # Critical warning
                 return 0.2, False, reason, {"warning_type": "SUSPICIOUS", "message": reason}
 
         ml_score = self.get_ml_score(url)

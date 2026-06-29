@@ -23,5 +23,4 @@ async def health_check(session: AsyncSession = Depends(get_session)):
     if not redis_ok:
         health["status"] = "degraded"
 
-    status_code = 200 if health["status"] == "healthy" else 503
     return health

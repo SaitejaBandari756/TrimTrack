@@ -1,6 +1,5 @@
 from app.database.session import init_engine, async_session_factory
 from app.models.url import URL
-from app.models.analytics import Analytics
 from app.services.bloom_filter import bloom_filter_service
 from app.services.cache_service import cache_service
 import logging
@@ -21,7 +20,7 @@ async def warm_cache():
         async with async_session_factory() as session:
             stmt = (
                 select(URL)
-                .where(URL.is_active == True)
+                .where(URL.is_active)
                 .order_by(URL.click_count.desc())
                 .limit(settings.cache_warm_top_n)
             )

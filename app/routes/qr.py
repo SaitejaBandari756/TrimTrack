@@ -7,7 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.session import get_session
 from app.services.cache_service import cache_service
 from app.services.url_service import url_service
-from app.config import settings
 from app.utils.url_helpers import get_public_base_url
 
 router = APIRouter()
